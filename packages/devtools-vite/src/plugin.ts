@@ -114,6 +114,11 @@ export const devtools = (args?: TanStackDevtoolsViteConfig): Array<Plugin> => {
   const consolePipingLevels: Array<ConsoleLevel> =
     consolePipingConfig.levels ?? ['log', 'warn', 'error', 'info', 'debug']
 
+  const originalConsoleMethods: Record<string, typeof console.log> =
+    Object.fromEntries(
+      consolePipingLevels.map((l) => [l, console[l].bind(console)]),
+    )
+
   let devtoolsFileId: string | null = null
   let devtoolsPort: number | null = null
   let devtoolsHost: string | null = null
@@ -146,7 +151,7 @@ export const devtools = (args?: TanStackDevtoolsViteConfig): Array<Plugin> => {
           return
         }
 
-        /*  const solidDedupeDeps = [
+        const solidDedupeDeps = [
           'solid-js',
           'solid-js/web',
           'solid-js/store',
@@ -161,7 +166,7 @@ export const devtools = (args?: TanStackDevtoolsViteConfig): Array<Plugin> => {
           optimizeDeps: {
             include: solidDedupeDeps,
           },
-        } */
+        }
       },
     },
     {
@@ -248,7 +253,10 @@ export const devtools = (args?: TanStackDevtoolsViteConfig): Array<Plugin> => {
                   onConsolePipe: (entries) => {
                     for (const entry of entries) {
                       const prefix = chalk.cyan('[Client]')
-                      const logMethod = console[entry.level as ConsoleLevel]
+                      const logMethod =
+                        originalConsoleMethods[entry.level as ConsoleLevel] ??
+                        originalConsoleMethods.log ??
+                        console.log
                       const cleanedArgs = stripEnhancedLogPrefix(
                         entry.args,
                         (loc) => chalk.gray(loc),
